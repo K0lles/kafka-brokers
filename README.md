@@ -8,7 +8,6 @@
 
 ```bash
   # Підніміть контейнери:
-    Copy
     docker compose up -d --build
 ```
 
