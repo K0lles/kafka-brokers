@@ -1,21 +1,15 @@
 #!/usr/bin/env sh
-set -x
+set -e
 
-if [ "$ACTION" == "producer" ]
-then
-  echo "starting $ACTION"
-  env | grep BOOTSTRAP
+if [ "$ACTION" = "producer" ]; then
+  echo "[run.sh] starting producer"
   python3 produce.py
-fi
 
-if [ "$ACTION" == "consumer" ]
-then
-  echo "starting $ACTION"
-  env | grep BOOTSTRAP
+elif [ "$ACTION" = "consumer" ]; then
+  echo "[run.sh] starting consumer"
   python3 consume.py
-fi
 
-if [ "$ACTION" == "shell" ]
-then
-  sleep 10000000
+else
+  echo "[run.sh] unknown ACTION=$ACTION"
+  exec /bin/sh
 fi

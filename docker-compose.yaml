@@ -1,6 +1,22 @@
 services:
   # … zookeeper, broker-1, broker-2, broker-3, kafka-ui …
 
+  minio:
+    image: bitnami/minio:latest
+    container_name: minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - ./minio_data:/data
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=adminadmin!!
+      - MINIO_DEFAULT_BUCKETS=default
+    networks:
+      - kafka
+
   zookeeper:
     platform: linux/amd64
     image: confluentinc/cp-zookeeper:${CONFLUENT_PLATFORM_VERSION:-7.4.0}
@@ -42,17 +58,12 @@ services:
       KAFKA_CLUSTERS_0_NAME: broker-1
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-1:29091
       KAFKA_CLUSTERS_0_METRICS_PORT: 19101
-      #KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schemaregistry0:8085
-      #KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
-      #KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect0:8083
       KAFKA_CLUSTERS_1_NAME: broker-2
       KAFKA_CLUSTERS_1_BOOTSTRAPSERVERS: broker-2:29092
       KAFKA_CLUSTERS_1_METRICS_PORT: 19102
-      #KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schemaregistry0:8085
       KAFKA_CLUSTERS_2_NAME: broker-3
       KAFKA_CLUSTERS_2_BOOTSTRAPSERVERS: broker-3:29093
       KAFKA_CLUSTERS_2_METRICS_PORT: 19103
-      #KAFKA_CLUSTERS_1_SCHEMAREGISTRY: http://schemaregistry1:8085
       DYNAMIC_CONFIG_ENABLED: 'true'
     networks:
       - kafka
@@ -79,10 +90,6 @@ services:
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-1:29091,EXTERNAL://localhost:9091
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_NUM_PARTITIONS: 3
-      #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      #KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      #KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      #KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_JMX_PORT: 19101
       KAFKA_JMX_HOSTNAME: localhost
     healthcheck:
@@ -115,10 +122,6 @@ services:
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-2:29092,EXTERNAL://localhost:9092
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_NUM_PARTITIONS: 3
-      #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      #KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      #KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      #KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_JMX_PORT: 19102
       KAFKA_JMX_HOSTNAME: localhost
     healthcheck:
@@ -151,10 +154,6 @@ services:
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://broker-3:29093,EXTERNAL://localhost:9093
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_NUM_PARTITIONS: 3
-      #KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      #KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      #KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      #KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_JMX_PORT: 19103
       KAFKA_JMX_HOSTNAME: localhost
     healthcheck:
@@ -192,10 +191,15 @@ services:
       - BOOTSTRAP_SERVERS=broker-1:29091,broker-2:29092,broker-3:29093
       - TOPIC=Topic1
       - CONSUMER_GROUP=group-1
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=adminadmin!!
+      - MINIO_BUCKET=default
     networks:
       - kafka
     depends_on:
       - producer
+      - minio
 
   consumer2:
     build: ./python-client
@@ -204,11 +208,20 @@ services:
       - BOOTSTRAP_SERVERS=broker-1:29091,broker-2:29092,broker-3:29093
       - TOPIC=Topic2
       - CONSUMER_GROUP=group-2
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=adminadmin!!
+      - MINIO_BUCKET=default
     networks:
       - kafka
     depends_on:
       - producer
+      - minio
 
 networks:
   kafka:
     name: kafka
+
+volumes:
+  minio_data:
+    driver: local
